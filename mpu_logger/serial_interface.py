@@ -32,7 +32,7 @@ class SerialStream:
 
 
 
-	def configure(self, port="COM5", speed=1000000):
+	def configure(self, port="COM4", speed=1000000):
        
 		self._serial.port = port
 		self._serial.baudrate = speed

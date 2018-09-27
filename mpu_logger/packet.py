@@ -16,6 +16,9 @@ class Packet():
         self.gyro_x = None
         self.gyro_y = None
         self.gyro_z = None
+        self.mag_x = None
+        self.mag_y = None
+        self.mag_z = None        
         self.err_code = None
         self.roll = None
         self.pitch = None
@@ -33,7 +36,7 @@ class Packet():
         split = data.split(",")
 		
         #check for list length
-        if len(split) != 14:
+        if len(split) != 17:
             self.status = -3
             return
 		
@@ -42,18 +45,21 @@ class Packet():
         try:
             self.event_num = int(split[0])
             self.timestamp = int(split[1])
-            self.q0 = int(split[2])
-            self.q1 = int(split[3])
-            self.q2 = int(split[4])
-            self.q3 = int(split[5])
-            self.acc_x = int(split[6])
-            self.acc_y = int(split[7])
-            self.acc_z = int(split[8])
-            self.gyro_x = int(split[9])
-            self.gyro_y = int(split[10])
-            self.gyro_z = int(split[11])
-            self.sensor_num = int(split[12])
-            self.err_code = int(split[13])
+            self.q0 = float(split[2])
+            self.q1 = float(split[3])
+            self.q2 = float(split[4])
+            self.q3 = float(split[5])
+            self.acc_x = float(split[6])
+            self.acc_y = float(split[7])
+            self.acc_z = float(split[8])
+            self.gyro_x = float(split[9])
+            self.gyro_y = float(split[10])
+            self.gyro_z = float(split[11])
+            self.mag_x = float(split[12])
+            self.mag_y = float(split[13])
+            self.mag_z = float(split[14])                       
+            self.sensor_num = int(split[15])
+            self.err_code = int(split[16])
        
         except Exception as ex:
             print ex
@@ -76,6 +82,9 @@ class Packet():
                 + str(self.gyro_x) + "," \
                 + str(self.gyro_y) + "," \
                 + str(self.gyro_z) + "," \
+                + str(self.mag_x) + "," \
+                + str(self.mag_y) + "," \
+                + str(self.mag_z) + "," \
                 + str(self.err_code) + "," \
                 + str(self.roll) + "," \
                 + str(self.pitch) + "," \

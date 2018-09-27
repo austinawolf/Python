@@ -2,6 +2,7 @@ from quaternion import Quaternion
 from packet import Packet
 from serial_interface import SerialStream
 from datetime import datetime 
+import math
 serial = SerialStream()
 serial.configure()
 serial.run()
@@ -45,20 +46,23 @@ def main():
         if packet.status != 0:
             continue
 
+        packet.mag_mag = math.sqrt(math.pow(packet.mag_x,2) + math.pow(packet.mag_y,2) +  math.pow(packet.mag_z,2))
+    
         try:
             
             quat = Quaternion(packet.q0, packet.q1, packet.q2, packet.q3)
             packet.roll = quat.roll
             packet.pitch = quat.pitch
             packet.yaw = quat.yaw
-            print "Roll:", packet.roll,",",
-            print "Pitch:", packet.pitch,",",
-            print "Yaw:", packet.yaw
+            print ("Roll: %6.2f," % (packet.roll)),
+            print ("Pitch: %6.2f," % (packet.pitch)),
+            print ("Yaw: %6.2f," % (packet.yaw)),
+            print ("Field Strength: %6.2f" % packet.mag_mag)
                         
             
-        except Exception:
+        except Exception as e:
             packet.status = -1
-
+            print e
         f = open(filename,"a")
         f.write( str(packet) )
         f.close()
