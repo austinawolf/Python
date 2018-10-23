@@ -97,7 +97,6 @@ def draw():
     glVertex3f( 1.0,-0.2, 1.0)		
     glVertex3f( 1.0,-0.2,-1.0)		
     glEnd()	
-    convert_alpha()
     
 def read_data():
     global ax, ay, az
