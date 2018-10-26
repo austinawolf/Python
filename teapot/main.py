@@ -5,7 +5,7 @@ from pygame.locals import *
 import serial
 from quaternion import Quaternion
 
-ser = serial.Serial('COM4', 1000000, timeout=1)
+ser = serial.Serial('COM4', 1000000, timeout=None)
 
 ax = ay = az = 0.0
 yaw_mode = True
@@ -116,8 +116,8 @@ def read_data():
             #print ("Roll: %6.2f," % (quat.roll)),
             #print ("Pitch: %6.2f," % (quat.pitch)),
             #print ("Yaw: %6.2f,\n\r" % (quat.yaw)),
-            ax = quat.roll
-            ay = quat.pitch
+            ax = quat.pitch
+            ay = quat.roll
             az = quat.yaw            
             
            
