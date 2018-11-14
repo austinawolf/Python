@@ -1,4 +1,5 @@
 import sys
+import copy
 
 def main():
     global clock
@@ -9,6 +10,7 @@ def main():
     print "Input File: ", input_file
     print "Scheduler: ", scheduler
     print "Energy Efficient: ", energy_efficent
+
     
     #open file
     try:
@@ -29,118 +31,120 @@ def main():
             task_list.append(EDF_Task(f.readline()))
     else:
         print_error("Invalid Scheduler")
+ 
     #done with file
     f.close()
-    
-    #verify task data import
-    print params
-    for task in task_list:
-        print task
 
-    release_list = task_list
-    suspended_list = []
-    schedule_list = []
-    
-    
-    clock = 0
-    
-    #find next task to schedule
-    if release_list:            
-        release_list.sort()    
-        active_task = release_list.pop()
+
         
+    if energy_efficent:
+        freqs = [384, 648, 918, 1188]
     else:
-        active_task = Idle_Task(suspended_list)
-
-    #select freq
-    freq = 1188
-    
-    #schdule next task
-    active_task.schedule(freq)
-    schedule_list.append(Schedule(active_task, freq)) 
-
-    ## Main Loop ##
-    # 1. check for missed deadlines
-    # 2. release tasks tasks when ready
-    # 3. context switch when task is done 
-        # a. move tasked to suspend list if not the idle "task"
-        # b. find next task to schedule from release list
-        # c. if release list empty schedule an idle "task"
-        # d. select appropriate frequency
-        # e. schedule next task
-    # 4. execute active task
-    # 5. increment clock
-    # 6. return to step 1
+        freqs = [1188]
+               
+    for freq in freqs:
         
-    while (clock < params.total_exec_time):
+        clock = 0
     
-        print "Clock = ", clock
+        release_list = copy.deepcopy(task_list)
+        suspended_list = []
+        schedule_list = []
         
-        # 1. check for missed deadlines
+        release_list.sort()
+        missed_deadline = False 
+        
+        print "\tRelease List: "
         for task in release_list:
-            if task.deadline < clock:
-                print "\tMissed deadline: "
-                print "\t", task
-                print "\nSchedule:"
-                for schedule in schedule_list:
-                    print schedule
-                sys.exit()
-        
-         # 2. release tasks tasks when ready
+            print "\t\t", task
+        print "\tSuspended List:"
         for task in suspended_list:
-            if task.is_ready():
-                suspended_list.remove(task)
-                task.release()
-                release_list.append(task)
-                print "\tReleasing Task: ", task.name
-                            
-        # 3. suspend taks when ready, then schedule new
-        if (active_task.is_done()):
-
-            # a. move tasked to suspend list if not the idle "task"
-            active_task.suspend()
-            if (active_task.__class__.__name__ != "Idle_Task"):
-                print "\tSuspending Task: ", active_task.name
-                suspended_list.append(active_task)
-            else:
-                print "\tIdle Done"
-
-                
-            # b. find next task to schedule from release list 
-            if release_list:            
-                release_list.sort()    
-                active_task = release_list.pop()
-            # c. if release list empty schedule an idle "task"    
-            else:
-                active_task = Idle_Task(suspended_list)
-
-            # d. select appropriate frequency
-            if (active_task.__class__.__name__ == "Idle_Task"):
-                freq = 0           
-            elif energy_efficent:
-                freq = 918
-            else:
-                freq = 1188
-            
-            #e. schedule next task
-            active_task.schedule(freq)
-            schedule_list.append(Schedule(active_task, freq))  
-                      
-            print "\tNext Task: ", active_task.name
-            
-        # 4. execute active task
-        active_task.execute()
-
-        # 5. increment clock
-        clock+=1
+            print "\t\t", task      
         
-    # print schedule
-    print "\nSchedule: "
-    for schedule in schedule_list:
-        print schedule      
-    total_energy = 0
-    for schedule in schedule_list: total_energy += schedule.energy_use
-    print "Total Energy Use: ", total_energy, "J"
+        
+        cpu = CPU(release_list.pop(), freq)
+        new_task = False
+
+        ## Main Loop ##
+        # 1. check for missed deadlines
+        # 2. release tasks tasks when ready
+        # 3. if released task(s) are higher priority than current task or task is done 
+            # a. suspend current task
+            # b. move task to appropriate list
+            # c. log excution to schedule
+            # d. select new task
+            # e. give new task to CPU
+        # 4. execute CPU for one time unit
+        # 5. increment clock
+        # 6. return to step 1
+            
+        while (clock < params.total_exec_time):
+        
+            print "Clock = ", clock
+            
+            # 1. check for missed deadlines
+            for task in release_list:
+                if task.deadline < clock:
+                    print "\tMissed deadline: "
+                    print "\t", task
+                    missed_deadline = True
+            if missed_deadline:
+                break
+            
+            # 2. release tasks tasks when ready
+            for task in suspended_list:
+                if task.is_ready():
+                    suspended_list.remove(task)
+                    task.release()
+                    release_list.sort()
+                    release_list.append(task)
+                    print "\tReleasing Task: ", task.name
+                    if  cpu.active_task < task:
+                        print "\tForcing CS"
+                        new_task = True
+                                        
+            # 3. if released task(s) are higher priority than current task or task is done 
+            if (cpu.active_task.is_done() or new_task):
+                new_task = False
+ 
+                print "\tActive Task:"
+                print "\t\t", cpu.active_task            
+                print "\tRelease List: "
+                for task in release_list:
+                    print "\t\t", task
+                print "\tSuspended List:"
+                for task in suspended_list:
+                    print "\t\t", task  
+                                
+                if release_list:
+                    suspended_task = cpu.context_switch(release_list.pop(),freq)
+                else:
+                    suspended_task = cpu.context_switch(Idle(),"IDLE")
+                    
+                    
+                if (suspended_task.__class__.__name__ != "Idle"):               
+                    if suspended_task.is_done():
+                        suspended_list.append(suspended_task)
+                    else:
+                        release_list.append(suspended_task)
+                                
+
+            # 4. execute CPU for one time unit       
+            cpu.run()      
+             
+            # 5. increment clock         
+            clock+=1
+        
+        #terminate
+        cpu.context_switch(Idle(),"IDLE")
+        
+        if not missed_deadline:
+            print "\nSchedule:"
+            total_energy = 0
+            for execution in cpu.execution_list:
+                total_energy+=execution.energy_use
+                print execution
+            print "Total Energy Use: ", total_energy, "J"
+            sys.exit()
     
 #end of main
     
@@ -159,7 +163,7 @@ class Params:
             918:int(split[3]),
             648:int(split[4]),
             384:int(split[5]),   
-            0:int(split[6]),
+            "IDLE":int(split[6]),
         }
       
     def __str__(self):
@@ -177,73 +181,49 @@ class Task:
             print_error("bad file")
             
         self.name = split[0]           
-        self.period =       int( split[1] )       
+        self.period = int( split[1] )       
         self.WCET = {
             1188:int(split[2]),
             918:int(split[3]),
             648:int(split[4]),
             384:int(split[5]),   
         }
-        self.release_time = 0
+        self.release_time = self.period
         self.deadline = self.period
+        self.remaining_time = None
     
     def schedule(self, freq):
-        global clock
-        self.execution = self.WCET[freq]
+        if self.remaining_time == None:
+            self.remaining_time = self.WCET[freq]
+        else:
+            pass
     
     def release(self):
         global clock 
         self.deadline = clock + self.period
-    
+        self.release_time = clock + self.period
+        self.remaining_time = None
+        
     def execute(self):
-        self.execution -=1 
-       
+        self.remaining_time -=1
+        print "\t", self.name, "Remaining Time = ", self.remaining_time
+               
     def suspend(self):
-        global clock
-        self.release_time += self.period
-        
+        pass
+                
     def is_ready(self):
-        global clock
-        
+        global clock      
         if (clock >= self.release_time):
             return True
         else:
             return False
     
-    def is_done(self):
-        
-        if self.execution == 0:
+    def is_done(self):        
+        if self.remaining_time <= 0:
             return True
         else:
             return False
-    
-    def __str__(self):
-        return "Task: " + self.name + ", Period: " + str(self.period) \
-
-class CPU:
-
-    def __init__(self):
-        pass
-   
-    def context_switch(self, task, freq):
-        ##log cpu time
-        
-        ##suspend
-        
-        ##load new execution
-        self.execution = Execution(task, freq)
-    
-    def execute(self):
-        self.execution.cpu_time+=1
-    
-class Execution:
-    
-    def __init__(self, task, freq):
-        global clock
-        self.init_time = clock
-        self.cpu_time = 0
-        self.freq = freq
-        
+            
 #Subclasses define the sorting behavior for scheduling               
 class RM_Task(Task):                         
     def __gt__(self, b):
@@ -251,7 +231,9 @@ class RM_Task(Task):
             return True
         else:
             return False
-            
+    def __str__(self):
+        return "Task: " + self.name + ", Period: " + str(self.period) + ", Remaining: " + str(self.remaining_time)     
+        
 class EDF_Task(Task):    
     def __gt__(self, b):
         global clock
@@ -260,55 +242,91 @@ class EDF_Task(Task):
             return True
         else:
             return False
-
-class Idle_Task(Task):
+    def __str__(self):
+        return "Task: " + self.name + ", Deadline: " + str(self.deadline) + ", Remaining: " + str(self.remaining_time) 
+        
+class Idle(Task):
     
-    def __init__(self, task_list):
-        global clock
-        global params         
-        min_release_time = params.total_exec_time
-        for task in task_list:
-            if task.release_time <  min_release_time:
-                min_release_time = task.release_time
-                
-        self.name = "IDLE"
-        self.execution = min_release_time - clock
-        self.release_time = 0
-        self.deadline = 0
-
-    def schedule(self, freq):
-        global clock
+    def __init__(self):
         global params
+        self.name = "IDLE"
         self.deadline = params.total_exec_time
+        self.period = params.total_exec_time
+    
+    def schedule(self, freq):
+        pass
          
     def suspend(self):
         pass
-
-    def __str__(self):    
-        return "Task: " + self.name \
-               + "\nPeriod: " + str(self.period) \
-               + "\nWCET: " \
+    
+    def execute(self):
+        pass
         
-class Schedule:
+    def is_done(self):
+        return False
+        
+    def __str__(self):    
+        return "Task: " + self.name
+       
+    def __lt__(self, b):
+        return True
+
+    def __gt__(self, b):
+        return False   
+
+        
+class CPU():
 
     def __init__(self, task, freq):
+        self.active_task = task
+        self.execution_list = []
+
+        ## schedule
+        self.execution = Execution(task, freq)
+        self.active_task.schedule(freq)
+        
+    def context_switch(self, next_task, freq):
+        print "\tContext Switch: ", self.active_task.name, "->", next_task.name
+        
+        ##log cpu time
+        self.execution_list.append(self.execution)
+        
+        ##suspend
+        self.active_task.suspend()
+        suspended_task = self.active_task
+               
+        ## schedule
+        self.active_task = next_task
+        self.execution = Execution(self.active_task, freq)
+        self.active_task.schedule(freq)
+        
+        return suspended_task
+                  
+    def run(self):
+        self.execution.cpu_time+=1        
+        self.active_task.execute()
+    
+class Execution:
+    
+    def __init__(self, task, freq):
         global clock
-        global params
         self.init_time = clock
         self.task = task
+        self.cpu_time = 0
         self.freq = freq
-        self.exec_time = task.execution
-        if (params.total_exec_time - clock < self.exec_time):
-            self.exec_time = params.total_exec_time - clock
         
-        self.energy_use = self.exec_time * params.power[freq] /1000.0
-    
     def __str__(self):
         return str(self.init_time) + "\t" \
-               + str(self.task.name) + "\t" \
-               + str(self.freq) + "\t" \
-               + str(self.exec_time) + "\t" \
-               + str(self.energy_use) + "J"
+           + str(self.task.name) + "\t" \
+           + str(self.freq) + "\t" \
+           + str(self.cpu_time) + "\t" \
+           + str(self.energy_use) + "J"
+    
+    @property
+    def energy_use(self):
+        global params
+        return params.power[self.freq]*self.cpu_time
+                 
 def get_args():
 
     if (len(sys.argv) == 3):
