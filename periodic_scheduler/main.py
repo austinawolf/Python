@@ -220,6 +220,30 @@ class Task:
     def __str__(self):
         return "Task: " + self.name + ", Period: " + str(self.period) \
 
+class CPU:
+
+    def __init__(self):
+        pass
+   
+    def context_switch(self, task, freq):
+        ##log cpu time
+        
+        ##suspend
+        
+        ##load new execution
+        self.execution = Execution(task, freq)
+    
+    def execute(self):
+        self.execution.cpu_time+=1
+    
+class Execution:
+    
+    def __init__(self, task, freq):
+        global clock
+        self.init_time = clock
+        self.cpu_time = 0
+        self.freq = freq
+        
 #Subclasses define the sorting behavior for scheduling               
 class RM_Task(Task):                         
     def __gt__(self, b):
