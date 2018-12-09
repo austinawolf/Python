@@ -100,7 +100,7 @@ def draw():
     
 def read_data():
     global ax, ay, az
-    
+    ax = ay = az = 0.0
     line_done = 0
 
     
@@ -109,41 +109,19 @@ def read_data():
     if line == "":
         return
     else:
-        split = line.replace("\n","").replace("\r","").split(",")
-        if len(split) == 7 and split[0] == "RV":
-            try:
-                quat = Quaternion(float(split[1]), float(split[2]), float(split[3]), float(split[4]))
-            except:
-                return
-                
+        split = line.split(",")
+        if len(split) == 5:
+        
+            quat = Quaternion(int(split[0]), int(split[1]), int(split[2]), int(split[3]))
             #print ("Roll: %6.2f," % (quat.roll)),
             #print ("Pitch: %6.2f," % (quat.pitch)),
             #print ("Yaw: %6.2f,\n\r" % (quat.yaw)),
             ax = quat.pitch
-            ay = quat.yaw
-            az = quat.roll  
+            ay = quat.roll
+            az = quat.yaw            
             
-        elif len(split) == 7 and split[0] == "Packet":
-            
-            packet_num = int(split[1])
-            data_type = int(split[2])
-            
-            if data_type == 1:
-                
-                quat = Quaternion(int(split[3]), int(split[4]), int(split[5]), int(split[6]))
-                               
-                ax = quat.roll
-                ay = quat.pitch
-                az = quat.yaw
-                
-            elif data_type == 2:
-                pass
-                
-            elif data_type == 4:
-                pass 
-                
-        else:
-            pass
+           
+    
         
 
 
@@ -162,14 +140,13 @@ def main():
     ticks = pygame.time.get_ticks()
     #screen.set_alpha(None)
 
-    while True:
+    while 1:
         event = pygame.event.poll()
         if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
             break       
         if event.type == KEYDOWN and event.key == K_z:
             yaw_mode = not yaw_mode
             #ser.write("z")
-
         read_data()
 
         draw()

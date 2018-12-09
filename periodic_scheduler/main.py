@@ -135,8 +135,7 @@ def schedule (tested_task_list):
                                     
         # 3. if released task(s) are higher priority than current task or task is done 
         if (cpu.active_task.is_done() or new_task):
-            new_task = False
-                     
+            new_task = False    
             if release_list:
                 suspended_task = cpu.context_switch(release_list.pop())
             else:

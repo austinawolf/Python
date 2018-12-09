@@ -6,13 +6,12 @@ class Quaternion(object):
 
 
     def __init__(self, q0, q1, q2, q3):
-        super(Quaternion, self).__init__()
-        magnitude = math.sqrt(q0 ** 2 + q1 ** 2 + q2 ** 2 + q3 ** 2)
-
-        self.q0 = float(q0) / magnitude
-        self.q1 = float(q1) / magnitude
-        self.q2 = float(q2) / magnitude
-        self.q3 = float(q3) / magnitude
+		super(Quaternion, self).__init__()
+		magnitude = math.sqrt(q0 ** 2 + q1 ** 2 + q2 ** 2 + q3 ** 2)
+		self.q0 = float(q0) / magnitude
+		self.q1 = float(q1) / magnitude
+		self.q2 = float(q2) / magnitude
+		self.q3 = float(q3) / magnitude
 	
     def magnitude(self):
         """
